@@ -1,0 +1,14 @@
+#! /bin/bash
+
+set -e
+
+# limit = $1, defaults to 1000
+limit=${1:-1}
+database="find_duplicates"
+query ()
+{
+  psql -q -t -d ${database} -c "\pset format unaligned" -c "${1}"
+}
+
+query "SELECT path from find_duplicates.files WHERE type='d' ORDER BY updated_at LIMIT ${limit}" \
+  | parallel "/home/armand/workspace/find_duplicates/single_dir {}"

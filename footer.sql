@@ -1,0 +1,1 @@
+ON CONFLICT (path) DO NOTHING;
