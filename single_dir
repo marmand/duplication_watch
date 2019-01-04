@@ -4,7 +4,7 @@ set -e
 path="$1"
 max=${2:-1}
 
-psql -q -t -d find_duplicates -c "UPDATE find_duplicates.files SET updated_at=NOW() WHERE path='${path}'"
+psql -q -t -d find_duplicates -c "UPDATE find_duplicates.files SET updated_at=NOW() WHERE path=\$\$${path}\$\$"
 
 for t in d f
 do
