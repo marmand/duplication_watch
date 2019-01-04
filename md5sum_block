@@ -10,9 +10,21 @@ query ()
   psql -q -t -d "find_duplicates" -c "\pset format unaligned" -c "${1}"
 }
 
-for path in $(query "SELECT path FROM find_duplicates.files WHERE type='f' AND md5sum IS NULL LIMIT ${limit}")
+paths=$(query "SELECT path FROM find_duplicates.files WHERE type='f' AND md5sum IS NULL LIMIT ${limit}")
+
+tmp=$(mktemp)
+for path in ${paths}
 do
-  req=$(md5sum ${path} \
-        | sed -re "s;^([^ ]+)[^/]+(.*)$;UPDATE find_duplicates.files SET md5sum='\1', updated_at=NOW() WHERE path='\2';")
-  query "${req}"
+  echo "UPDATE find_duplicates.files SET md5sum=1 WHERE path=\$\$${path}\$\$;" >> ${tmp}
 done
+cat ${tmp} | psql -q -d "find_duplicates"
+rm ${tmp}
+
+tmp=$(mktemp)
+for path in ${paths}
+do
+  md5sum ${path} \
+    | sed -re 's@^([^ ]+)[^/]+(.*)$@UPDATE find_duplicates.files SET md5sum=$$\1$$, updated_at=NOW() WHERE path=$$\2$$;@' >> ${tmp}
+done
+cat ${tmp} | psql -q -d "find_duplicates"
+rm ${tmp}
