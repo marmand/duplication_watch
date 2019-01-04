@@ -6,15 +6,15 @@ max=${2:-1}
 
 psql -q -t -d find_duplicates -c "UPDATE find_duplicates.files SET updated_at=NOW() WHERE path=\$\$${path}\$\$"
 
+tmp=$(mktemp)
+
 for t in d f
 do
-  tmp=$(mktemp)
   find "${path}" -maxdepth ${max} -type ${t} \
     | sed -re "s+^(.*)$+, (\$\$\1\$\$, '${t}')+" \
     > ${tmp}
-
-  cat /home/armand/workspace/find_duplicates/template.sql ${tmp} /home/armand/workspace/find_duplicates/footer.sql \
-    | psql -q -t -d "find_duplicates"
-
-  rm ${tmp}
 done
+
+cat /home/armand/workspace/find_duplicates/template.sql ${tmp} /home/armand/workspace/find_duplicates/footer.sql \
+  | psql -q -t -d "find_duplicates"
+rm ${tmp}
