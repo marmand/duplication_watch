@@ -12,13 +12,7 @@ query ()
 
 paths=$(query "SELECT path FROM find_duplicates.files WHERE type='f' AND md5sum IS NULL LIMIT ${limit}")
 
-tmp=$(mktemp)
-for path in ${paths}
-do
-  echo "UPDATE find_duplicates.files SET md5sum=1 WHERE path=\$\$${path}\$\$;" >> ${tmp}
-done
-cat ${tmp} | psql -q -d "find_duplicates"
-rm ${tmp}
+parallel "echo 'UPDATE find_duplicates.files SET md5sum=1 WHERE path=\$\${}\$\$' | psql -q -d find_duplicates" ::: ${paths}
 
 tmp=$(mktemp)
 for path in ${paths}
