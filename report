@@ -1,6 +1,7 @@
 #! /bin/bash
 
 set -e
+set -o pipefail
 
 query ()
 {
@@ -11,4 +12,4 @@ done=$(query "SELECT COUNT(*) FROM find_duplicates.files WHERE type='f' AND md5s
 total=$(query "SELECT COUNT(*) FROM find_duplicates.files WHERE type='f'")
 echo "Avancement: $(( ${done} * 100 / ${total}))%"
 
-query "SELECT md5sum, path FROM find_duplicates.files WHERE md5sum IN (SELECT md5sum FROM find_duplicates.files WHERE md5sum IS NOT NULL GROUP BY md5sum HAVING count(0) > 1) ORDER BY md5sum;"
+#query "SELECT md5sum, path FROM find_duplicates.files WHERE md5sum IN (SELECT md5sum FROM find_duplicates.files WHERE md5sum IS NOT NULL GROUP BY md5sum HAVING count(0) > 1) ORDER BY md5sum;"

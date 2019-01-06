@@ -1,9 +1,10 @@
 #! /bin/bash
 
 set -e
+set -o pipefail
 
 # limit = $1, defaults to 1000
-limit=${1:-1}
+limit=${1:-1000}
 database="find_duplicates"
 query ()
 {

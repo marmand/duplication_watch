@@ -1,0 +1,14 @@
+#! /bin/bash
+
+set -ex
+set -o pipefail
+
+query ()
+{
+  psql -q -t -d "find_duplicates" -c "\pset format unaligned" -c "${1}"
+}
+
+path="$1"
+
+query "UPDATE find_duplicates.files SET md5sum=1 WHERE path=\$\$${path}\$\$"
+md5sum ${path} | sed -re 's@^([^ ]+)[^/]+(.*)$@UPDATE find_duplicates.files SET md5sum=$$\1$$, updated_at=NOW() WHERE path=$$\2$$;@' | psql -q -d "find_duplicates"

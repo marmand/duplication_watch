@@ -1,6 +1,8 @@
 #! /bin/bash
 
 set -e
+set -o pipefail
+
 path="$1"
 max=${2:-1}
 
@@ -11,8 +13,8 @@ tmp=$(mktemp)
 for t in d f
 do
   find "${path}" -maxdepth ${max} -type ${t} \
-    | sed -re "s+^(.*)$+, (\$\$\1\$\$, '${t}')+" \
-    > ${tmp}
+    -exec stat -c ", (\$\$%n\$\$, \$\$${t}\$\$, %s)" '{}' + \
+    >> ${tmp}
 done
 
 cat /home/armand/workspace/find_duplicates/template.sql ${tmp} /home/armand/workspace/find_duplicates/footer.sql \

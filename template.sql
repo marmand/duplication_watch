@@ -1,1 +1,1 @@
-INSERT INTO find_duplicates.files (path, type) VALUES ('/Mnemosyne/backups/', 'd')
+INSERT INTO find_duplicates.files (path, type, size) VALUES ('/Mnemosyne/backups/', 'd', 4096)
