@@ -1,9 +1,9 @@
 #! /bin/bash
 
-set -ex
+set -e
 set -o pipefail
 
-limit=${1:-1000}
+limit=${1:-100}
 
 psql -q -t -d "find_duplicates" -c "\pset format unaligned" -c "SELECT path FROM find_duplicates.files WHERE type='f' AND md5sum IS NULL LIMIT ${limit}" \
   | parallel "/home/armand/workspace/find_duplicates/single_md5"
