@@ -1,9 +1,31 @@
-#! /bin/bash
+#! /usr/bin/python3
 
-set -e
-set -o pipefail
+import psycopg2
+import hashlib
 
-limit=${1:-100}
+def md5(fname):
+    hash_md5 = hashlib.md5()
+    with open(fname, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest()
 
-psql -q -t -d "find_duplicates" -c "\pset format unaligned" -c "SELECT path FROM find_duplicates.files WHERE type='f' AND md5sum IS NULL LIMIT ${limit}" \
-  | parallel "/home/armand/workspace/find_duplicates/single_md5"
+connection = None
+try:
+    update = """
+        UPDATE find_duplicates.files
+        SET md5sum=%s
+        WHERE path=%s
+    """
+    connection = psycopg2.connect("dbname=find_duplicates user=armand")
+    cursor = connection.cursor()
+    cursor.execute("SELECT path FROM find_duplicates.files WHERE md5sum IS NULL AND type='f' LIMIT 1000")
+    for row in cursor.fetchall():
+        cursor.execute(update, (md5(row[0]), row))
+    connection.commit()
+    cursor.close()
+except psycopg2.DatabaseError as error:
+    print(error)
+finally:
+    if connection is not None:
+        connection.close()
