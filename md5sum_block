@@ -18,11 +18,32 @@ try:
         WHERE path=%s
     """
     connection = psycopg2.connect("dbname=find_duplicates user=armand")
+    paths = []
+    total_size = 0
+    max_size = 1024 * 1024
+    while total_size < max_size:
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT path, size FROM find_duplicates.files WHERE md5sum IS NULL AND type='f' AND size IS NOT NULL LIMIT 1024")
+                for row in cursor.fetchall():
+                    if total_size < max_size:
+                        paths.append(row[0])
+                        total_size += row[1]
+    print(paths)
+    print(total_size)
+
     with connection:
         with connection.cursor() as cursor:
-            cursor.execute("SELECT path FROM find_duplicates.files WHERE md5sum IS NULL AND type='f' LIMIT 1000")
-            for row in cursor.fetchall():
-                cursor.execute(update, (md5(row[0]), row))
+            for path in paths:
+                print("Set md5sum to 1 for ", path)
+                cursor.execute(update, ("1", path))
+
+    with connection:
+        with connection.cursor() as cursor:
+            for path in paths:
+                print("Compute md5sum: ", path)
+                cursor.execute(update, (md5(path), path))
+
 except psycopg2.DatabaseError as error:
     print(error)
 finally:
