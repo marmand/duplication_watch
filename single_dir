@@ -13,7 +13,7 @@ tmp=$(mktemp)
 for t in d f
 do
   find "${path}" -maxdepth ${max} -type ${t} \
-    -exec stat -c ", (\$\$%n\$\$, \$\$${t}\$\$, %s)" '{}' + \
+    -exec stat -c ", (\$token\$%n\$token\$, \$\$${t}\$\$, %s)" '{}' + \
     >> ${tmp}
 done
 
