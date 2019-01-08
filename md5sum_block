@@ -18,12 +18,11 @@ try:
         WHERE path=%s
     """
     connection = psycopg2.connect("dbname=find_duplicates user=armand")
-    cursor = connection.cursor()
-    cursor.execute("SELECT path FROM find_duplicates.files WHERE md5sum IS NULL AND type='f' LIMIT 1000")
-    for row in cursor.fetchall():
-        cursor.execute(update, (md5(row[0]), row))
-    connection.commit()
-    cursor.close()
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT path FROM find_duplicates.files WHERE md5sum IS NULL AND type='f' LIMIT 1000")
+            for row in cursor.fetchall():
+                cursor.execute(update, (md5(row[0]), row))
 except psycopg2.DatabaseError as error:
     print(error)
 finally:
