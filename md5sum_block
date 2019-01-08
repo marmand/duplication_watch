@@ -29,19 +29,15 @@ try:
                     if total_size < max_size:
                         paths.append(row[0])
                         total_size += row[1]
-    print(paths)
-    print(total_size)
 
     with connection:
         with connection.cursor() as cursor:
             for path in paths:
-                print("Set md5sum to 1 for ", path)
                 cursor.execute(update, ("1", path))
 
     with connection:
         with connection.cursor() as cursor:
             for path in paths:
-                print("Compute md5sum: ", path)
                 cursor.execute(update, (md5(path), path))
 
 except psycopg2.DatabaseError as error:
