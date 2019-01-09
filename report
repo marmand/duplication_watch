@@ -1,23 +1,10 @@
 #! /bin/bash
 
 set -e
-set -o pipefail
 
-query ()
-{
-  psql -q -t -d "find_duplicates" -c "\pset format unaligned" -c "${1}"
-}
+psql -d "find_duplicates" -c "SELECT (SELECT COUNT(*) FROM find_duplicates.files WHERE type='f' AND md5sum IS NOT NULL) * 100 / (SELECT COUNT(*) FROM find_duplicates.files WHERE type='f') AS count_percent;"
 
-done=$(query "SELECT COUNT(*) FROM find_duplicates.files WHERE type='f' AND md5sum IS NOT NULL")
-total=$(query "SELECT COUNT(*) FROM find_duplicates.files WHERE type='f'")
-echo "Avancement: $(( ${done} * 100 / ${total}))%"
-
-echo "Types:"
 psql -d "find_duplicates" -c "select count(*), type from find_duplicates.files group by type;"
-echo "Files without hash"
-psql -d "find_duplicates" -c "select count(*) from find_duplicates.files where md5sum is null and type='f';"
-echo "Files without size"
-psql -d "find_duplicates" -c "select count(*) from find_duplicates.files where size is null;"
-psql -d "find_duplicates" -c "select (select sum(size) from find_duplicates.files where md5sum is not null and type='f')/(select sum(size) from find_duplicates.files where type='f') * 100;"
-
-#query "SELECT md5sum, path FROM find_duplicates.files WHERE md5sum IN (SELECT md5sum FROM find_duplicates.files WHERE md5sum IS NOT NULL GROUP BY md5sum HAVING count(0) > 1) ORDER BY md5sum;"
+psql -d "find_duplicates" -c "select count(*) AS files_without_hash from find_duplicates.files where md5sum is null and type='f';"
+psql -d "find_duplicates" -c "select count(*) AS files_without_size from find_duplicates.files where size is null;"
+psql -d "find_duplicates" -c "select (select sum(size) from find_duplicates.files where md5sum is not null and type='f')/(select sum(size) from find_duplicates.files where type='f') * 100 AS size_percent;"
