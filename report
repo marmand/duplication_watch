@@ -18,5 +18,6 @@ echo "Files without hash"
 psql -d "find_duplicates" -c "select count(*) from find_duplicates.files where md5sum is null and type='f';"
 echo "Files without size"
 psql -d "find_duplicates" -c "select count(*) from find_duplicates.files where size is null;"
+psql -d "find_duplicates" -c "select (select sum(size) from find_duplicates.files where md5sum is not null and type='f')/(select sum(size) from find_duplicates.files where type='f') * 100;"
 
 #query "SELECT md5sum, path FROM find_duplicates.files WHERE md5sum IN (SELECT md5sum FROM find_duplicates.files WHERE md5sum IS NOT NULL GROUP BY md5sum HAVING count(0) > 1) ORDER BY md5sum;"
