@@ -1,0 +1,105 @@
+#! /usr/bin/python3
+
+import psycopg2
+import os
+from threading import Thread
+import hashlib
+
+def update_dir(connection, paths):
+    # Search in path new entries
+    new_line_sql = """
+        INSERT INTO find_duplicates.files (path, type, size, modification_time)
+            VALUES
+                (%(path)s, %(type)s, %(size)s, TO_TIMESTAMP(%(modification_time)s))
+            ON CONFLICT (path) DO
+            UPDATE
+            SET
+                size = %(size)s
+                , modification_time = TO_TIMESTAMP(%(modification_time)s)
+    """
+    with connection:
+        with connection.cursor() as cursor:
+            for p in paths:
+                statinfo = os.stat(p)
+                cursor.execute(new_line_sql,
+                    {
+                        'path': p,
+                        'type': 'd',
+                        'size': statinfo.st_size,
+                        'modification_time': statinfo.st_mtime,
+                    })
+                cursor.execute("UPDATE find_duplicates.files SET updated_at=NOW() WHERE path=%s", (p,))
+
+                for f in os.listdir(p):
+                    t = 'NULL'
+                    fullpath = os.path.join(p, f)
+                    if os.path.isfile(fullpath):
+                        t = 'f'
+                    elif os.path.isdir(fullpath):
+                        t = 'd'
+                    statinfo = os.stat(fullpath)
+                    cursor.execute(new_line_sql,
+                        {
+                            'path': fullpath,
+                            'type': t,
+                            'size': statinfo.st_size,
+                            'modification_time': statinfo.st_mtime,
+                        })
+
+def handle_dir(connection):
+    while True:
+    #if True:
+        # Handle oldest dir
+        paths = []
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT path from find_duplicates.files WHERE type='d' ORDER BY updated_at LIMIT 1")
+                for row in cursor.fetchall():
+                    paths.append(row[0])
+        update_dir(connection, paths)
+
+        # Handle some dirs that we never visited before
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT path from find_duplicates.files WHERE type='d' AND updated_at IS NULL LIMIT 100")
+                for row in cursor.fetchall():
+                    paths.append(row[0])
+        update_dir(connection, paths)
+
+def md5(fname):
+    hash_md5 = hashlib.md5()
+    with open(fname, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest()
+
+def handle_file(connection):
+    update = """
+        UPDATE find_duplicates.files
+        SET md5sum=%s
+            , updated_at = NOW()
+        WHERE path=%s
+    """
+    while True:
+    #if True:
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT path FROM find_duplicates.files WHERE md5sum IS NULL AND type='f' LIMIT 10")
+                for row in cursor.fetchall():
+                    cursor.execute(update, (md5(row[0]), row[0]))
+
+connection = None
+try:
+    connection = psycopg2.connect("dbname=find_duplicates user=armand")
+    dir_thread = Thread(target = handle_dir, args = (connection,))
+    file_thread = Thread(target = handle_file, args = (connection,))
+    dir_thread.start()
+    file_thread.start()
+    dir_thread.join()
+    file_thread.join()
+
+except psycopg2.DatabaseError as error:
+    print(error)
+finally:
+    if connection is not None:
+        connection.close()
