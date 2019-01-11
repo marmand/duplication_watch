@@ -20,35 +20,41 @@ def update_dir(connection, paths):
     with connection:
         with connection.cursor() as cursor:
             for p in paths:
-                if os.path.exists(p):
-                    statinfo = os.stat(p)
-                    cursor.execute(new_line_sql,
-                        {
-                            'path': p,
-                            'type': 'd',
-                            'size': statinfo.st_size,
-                            'modification_time': statinfo.st_mtime,
-                        })
-                    cursor.execute("UPDATE find_duplicates.files SET updated_at=NOW() WHERE path=%s", (p,))
-
-                    for f in os.listdir(p):
-                        t = 'NULL'
-                        fullpath = os.path.join(p, f)
-                        if os.path.isfile(fullpath):
-                            t = 'f'
-                        elif os.path.isdir(fullpath):
-                            t = 'd'
-                        statinfo = os.stat(fullpath)
+                try:
+                    if os.path.exists(p):
+                        statinfo = os.stat(p)
                         cursor.execute(new_line_sql,
                             {
-                                'path': fullpath,
-                                'type': t,
+                                'path': p,
+                                'type': 'd',
                                 'size': statinfo.st_size,
                                 'modification_time': statinfo.st_mtime,
                             })
-                else:
-                    delete = "DELETE FROM find_duplicates.files WHERE path LIKE $${}%$$".format(p)
-                    cursor.execute(delete)
+                        cursor.execute("UPDATE find_duplicates.files SET updated_at=NOW() WHERE path=%s", (p,))
+
+                        for f in os.listdir(p):
+                            t = 'NULL'
+                            fullpath = os.path.join(p, f)
+                            if os.path.isfile(fullpath):
+                                t = 'f'
+                            elif os.path.isdir(fullpath):
+                                t = 'd'
+                            else:
+                                print("Path {} is neither a file nor a directory".format(fullpath))
+                                continue
+                            statinfo = os.stat(fullpath)
+                            cursor.execute(new_line_sql,
+                                {
+                                    'path': fullpath,
+                                    'type': t,
+                                    'size': statinfo.st_size,
+                                    'modification_time': statinfo.st_mtime,
+                                })
+                    else:
+                        delete = "DELETE FROM find_duplicates.files WHERE path LIKE $${}%$$".format(p)
+                        cursor.execute(delete)
+                except FileNotFoundError as error:
+                    print("File Not Found: ", error)
 
 def handle_dir(connection):
     while True:
