@@ -65,7 +65,7 @@ def handle_dir(connection):
         # Handle some dirs that we never visited before
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute("SELECT path from find_duplicates.files WHERE type='d' AND updated_at IS NULL LIMIT 100")
+                cursor.execute("SELECT path from find_duplicates.files WHERE type='d' AND updated_at IS NULL")
                 for row in cursor.fetchall():
                     paths.append(row[0])
         update_dir(connection, paths)
