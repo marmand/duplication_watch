@@ -40,9 +40,8 @@ def update_dir(connection, paths):
                                 t = 'f'
                             elif os.path.isdir(fullpath):
                                 t = 'd'
-                            else:
-                                print("Path {} is neither a file nor a directory".format(fullpath))
-                                continue
+                            if os.path.islink(fullpath):
+                                t = 'l'
                             statinfo = os.stat(fullpath)
                             cursor.execute(new_line_sql,
                                 {
