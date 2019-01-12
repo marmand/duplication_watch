@@ -4,7 +4,12 @@ set -e
 
 psql -d "find_duplicates" -c "SELECT (SELECT COUNT(*) FROM find_duplicates.files WHERE type='f' AND md5sum IS NOT NULL) * 100 / (SELECT COUNT(*) FROM find_duplicates.files WHERE type='f') AS count_percent;"
 
-psql -d "find_duplicates" -c "select count(*), type from find_duplicates.files group by type;"
-psql -d "find_duplicates" -c "select count(*) AS files_without_hash from find_duplicates.files where md5sum is null and type='f';"
-psql -d "find_duplicates" -c "select count(*) AS files_without_size from find_duplicates.files where size is null;"
-psql -d "find_duplicates" -c "select (select sum(size) from find_duplicates.files where md5sum is not null and type='f')/(select sum(size) from find_duplicates.files where type='f') * 100 AS size_percent;"
+psql -d find_duplicates <<-EOF
+select count(*), type from find_duplicates.files group by type;
+select count(*) AS files_without_hash from find_duplicates.files where md5sum is null and type='f';
+select count(*) AS paths_without_size from find_duplicates.files where size is null;
+select count(*) AS paths_without_modification_time from find_duplicates.files where modification_time is null;
+select (select sum(size) from find_duplicates.files where md5sum is not null and type='f')/(select sum(size) from find_duplicates.files where type='f') * 100 AS size_percent;
+EOF
+
+# select path from find_duplicates.files where md5sum in (select md5sum from find_duplicates.files group by md5sum having count(0) > 1);
