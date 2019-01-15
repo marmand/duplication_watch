@@ -108,7 +108,7 @@ def handle_file(connection):
     #if True:
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute("SELECT path FROM find_duplicates.files WHERE md5sum IS NULL AND type='f' ORDER BY size DESC LIMIT 1")
+                cursor.execute("SELECT path FROM find_duplicates.files WHERE md5sum IS NULL AND type='f' LIMIT 10")
                 for row in cursor.fetchall():
                     cursor.execute(update, (md5(row[0]), row[0]))
 
