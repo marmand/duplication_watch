@@ -49,14 +49,17 @@ def update_dir(connection, paths):
                                         'modification_time': '0',
                                     })
                             else:
-                                statinfo = os.stat(fullpath)
-                                cursor.execute(new_line_sql,
-                                    {
-                                        'path': fullpath,
-                                        'type': t,
-                                        'size': statinfo.st_size,
-                                        'modification_time': statinfo.st_mtime,
-                                    })
+                                if t != 'NULL':
+                                    statinfo = os.stat(fullpath)
+                                    cursor.execute(new_line_sql,
+                                        {
+                                            'path': fullpath,
+                                            'type': t,
+                                            'size': statinfo.st_size,
+                                            'modification_time': statinfo.st_mtime,
+                                        })
+                                else:
+                                    print("Path has unknown type", fullpath)
                     else:
                         print("Path don't exists: ", p)
                         delete = "DELETE FROM find_duplicates.files WHERE path LIKE $${}%$$".format(p)
