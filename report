@@ -8,6 +8,8 @@ psql -d find_duplicates <<-EOF
 select count(*), type from find_duplicates.files group by type;
 select count(*) AS files_without_hash from find_duplicates.files where md5sum is null and type='f';
 select (select sum(size) from find_duplicates.files where md5sum is not null and type='f')/(select sum(size) from find_duplicates.files where type='f') * 100 AS size_percent;
+select sum(size) AS duplicate_size from find_duplicates.files where md5sum in (select md5sum from find_duplicates.files group by md5sum having count(0) > 1);
+select updated_at AS oldest_directory_update from find_duplicates.files where type='d' order by updated_at limit 1;
 EOF
 
 # select md5sum, path from find_duplicates.files where md5sum in (select md5sum from find_duplicates.files group by md5sum having count(0) > 1) order by size DESC, md5sum;
