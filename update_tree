@@ -81,6 +81,7 @@ def handle_dir(connection):
                 for row in cursor.fetchall():
                     paths.append(row[0])
         update_dir(connection, paths)
+        paths = []
 
         # Handle some dirs that we never visited before
         with connection:
@@ -89,6 +90,7 @@ def handle_dir(connection):
                 for row in cursor.fetchall():
                     paths.append(row[0])
         update_dir(connection, paths)
+        paths = []
 
 def md5(fname):
     hash_md5 = hashlib.md5()
