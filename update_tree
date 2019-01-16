@@ -108,21 +108,25 @@ def handle_file(connection):
     """
     while True:
     #if True:
-        try:
-            with connection:
-                with connection.cursor() as cursor:
-                    cursor.execute("SELECT path FROM find_duplicates.files WHERE md5sum IS NULL AND type='f' LIMIT 10")
-                    for row in cursor.fetchall():
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT path FROM find_duplicates.files WHERE md5sum IS NULL AND type='f' LIMIT 10")
+                for row in cursor.fetchall():
+                    try:
                         cursor.execute(update, (md5(row[0]), row[0]))
+                    except FileNotFoundError as error:
+                        print("File Not Found: ", row[0])
+                        cursor.execute("DELETE FROM find_duplicates.files WHERE path = %s", (row[0],))
+                    except Exception as error:
+                        print("Error on: ", row[0])
+                        cursor.execute("DELETE FROM find_duplicates.files WHERE path = %s", (row[0],))
 
-            with connection:
-                with connection.cursor() as cursor:
-                    cursor.execute("SELECT path FROM find_duplicates.files WHERE type='f' AND updated_at < modification_time")
-                    for row in cursor.fetchall():
-                        cursor.execute(update, (md5(row[0]), row[0]))
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT path FROM find_duplicates.files WHERE type='f' AND updated_at < modification_time")
+                for row in cursor.fetchall():
+                    cursor.execute(update, (md5(row[0]), row[0]))
 
-        except FileNotFoundError as error:
-            print("File Not Found: ", error)
 
 
 connection = None
