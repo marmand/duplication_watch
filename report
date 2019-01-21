@@ -14,7 +14,8 @@ select sum(size) / 1024 / 1024 / 1024 || ' Go' AS Go_to_hash from find_duplicate
 select (select sum(size) from find_duplicates.files where md5sum is not null and type='f')/(select sum(size) from find_duplicates.files where type='f') * 100 AS size_percent;
 select sum(size) / 1024 / 1024 / 1024 || ' Go' AS duplicate_size from find_duplicates.files where md5sum in (select md5sum from find_duplicates.files group by md5sum having count(0) > 1);
 select count(*), updated_at from find_duplicates.files where type='d' group by updated_at order by updated_at limit 1;
-select (select updated_at from find_duplicates.files where type='d' group by updated_at order by updated_at desc limit 1) - (select updated_at from find_duplicates.files where type='d' group by updated_at order by updated_at limit 1) AS update_duration;
+select (select updated_at from find_duplicates.files where type='d' and updated_at is not null group by updated_at order by updated_at desc limit 1)
+       - (select updated_at from find_duplicates.files where type='d' and updated_at is not null group by updated_at order by updated_at limit 1) AS update_duration;
 EOF
 
 # select md5sum, path from find_duplicates.files where md5sum in (select md5sum from find_duplicates.files group by md5sum having count(0) > 1) order by size DESC, md5sum;
