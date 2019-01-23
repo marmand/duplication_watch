@@ -20,28 +20,44 @@ try:
         same_files_request = """
             SELECT path FROM find_duplicates.files WHERE md5sum = %s
         """
+        remove_request = """
+            DELETE FROM find_duplicates.files WHERE md5sum = %s
+        """
 
         paths = dict()
-        count = 0
+        count = 2
 
-        with connection.cursor() as cursor:
-            cursor.execute(same_files_request, (md5s[current],))
-            for path in cursor.fetchall():
-                if os.path.exists(path[0]):
-                    paths[count] = path[0]
-                    count = count + 1
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(same_files_request, (md5s[current],))
+                for path in cursor.fetchall():
+                    if os.path.exists(path[0]):
+                        paths[count] = path[0]
+                        count = count + 1
 
         print("Choose which file to keep:")
+        print("0 Exit")
+        print("1 Next")
         for path in paths:
             print(path, " ", paths[path])
         choice = input(" >> ")
+
+        if int(choice) == 0:
+            print("Exiting")
+            break
+        elif int(choice) == 1:
+            print("Skipping")
+            continue
 
         for path in paths:
             if int(path) == int(choice):
                 print("Keeping: ", paths[path])
             else:
                 print("Removing: ", paths[path])
-        print("Remove records matching md5", md5s[current])
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(remove_request, (md5s[current],))
 
         break
                 # with connection.cursor() as cursor2:
