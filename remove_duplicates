@@ -60,14 +60,6 @@ try:
             with connection.cursor() as cursor:
                 cursor.execute(remove_request, (md5s[current],))
 
-        break
-                # with connection.cursor() as cursor2:
-                #     cursor2.execute(same_files_request, (md5,))
-                #     for row in cursor2.fetchall():
-                #         path = row[0]
-                #         size = row[1]
-                #         print("MD5: ", md5, " Path: ", path, "Size:", size)
-
 except psycopg2.DatabaseError as error:
     print(error)
 finally:
