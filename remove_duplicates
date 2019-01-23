@@ -1,0 +1,58 @@
+#! /usr/bin/python3
+
+import psycopg2
+import os
+
+connection = None
+try:
+    connection = psycopg2.connect("dbname=find_duplicates user=armand")
+
+    md5s = dict()
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT md5sum, size FROM find_duplicates.files GROUP BY md5sum, size HAVING COUNT(0) > 1")
+            for row in cursor.fetchall():
+                md5 = row[0]
+                size = row[1]
+                md5s[size] = md5
+
+    for current in sorted(md5s, reverse=True):
+        same_files_request = """
+            SELECT path FROM find_duplicates.files WHERE md5sum = %s
+        """
+
+        paths = dict()
+        count = 0
+
+        with connection.cursor() as cursor:
+            cursor.execute(same_files_request, (md5s[current],))
+            for path in cursor.fetchall():
+                if os.path.exists(path[0]):
+                    paths[count] = path[0]
+                    count = count + 1
+
+        print("Choose which file to keep:")
+        for path in paths:
+            print(path, " ", paths[path])
+        choice = input(" >> ")
+
+        for path in paths:
+            if int(path) == int(choice):
+                print("Keeping: ", paths[path])
+            else:
+                print("Removing: ", paths[path])
+        print("Remove records matching md5", md5s[current])
+
+        break
+                # with connection.cursor() as cursor2:
+                #     cursor2.execute(same_files_request, (md5,))
+                #     for row in cursor2.fetchall():
+                #         path = row[0]
+                #         size = row[1]
+                #         print("MD5: ", md5, " Path: ", path, "Size:", size)
+
+except psycopg2.DatabaseError as error:
+    print(error)
+finally:
+    if connection is not None:
+        connection.close()
