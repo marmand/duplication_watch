@@ -54,6 +54,7 @@ try:
                 print("Keeping: ", paths[path])
             else:
                 print("Removing: ", paths[path])
+                os.remove(paths[path])
 
         with connection:
             with connection.cursor() as cursor:
