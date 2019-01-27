@@ -8,6 +8,8 @@ try:
     connection = psycopg2.connect("dbname=find_duplicates user=armand")
 
     md5s = dict()
+    total_file = 0
+    total_size = 0
     with connection:
         with connection.cursor() as cursor:
             cursor.execute("SELECT md5sum, size FROM find_duplicates.files GROUP BY md5sum, size HAVING COUNT(0) > 1")
@@ -15,8 +17,13 @@ try:
                 md5 = row[0]
                 size = row[1]
                 md5s[size] = md5
+                total_size = total_size + size
+                total_file = total_file + 1
 
+    removed_size = 0
+    handled_file = 0
     for current in sorted(md5s, reverse=True):
+        handled_file = handled_file + 1
         same_files_request = """
             SELECT path FROM find_duplicates.files WHERE md5sum = %s
         """
@@ -35,6 +42,7 @@ try:
                         paths[count] = path[0]
                         count = count + 1
 
+        print(handled_file, "/", total_file)
         print("Choose which file to keep:")
         print("0 Exit")
         print("1 Next")
@@ -55,10 +63,12 @@ try:
             else:
                 print("Removing: ", paths[path])
                 os.remove(paths[path])
+                removed_size = removed_size + current
 
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(remove_request, (md5s[current],))
+        print(removed_size, "/", total_size)
 
 except psycopg2.DatabaseError as error:
     print(error)
