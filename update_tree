@@ -4,6 +4,7 @@ import psycopg2
 import os
 from threading import Thread
 import hashlib
+import time
 
 def update_dir(connection, paths):
     # Search in path new entries
@@ -106,12 +107,15 @@ def handle_file(connection):
             , updated_at = NOW()
         WHERE path=%s
     """
+    sleep_time = 1
     while True:
     #if True:
+        count = 0
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute("SELECT path FROM find_duplicates.files WHERE md5sum IS NULL AND type='f' LIMIT 10")
                 for row in cursor.fetchall():
+                    count = count + 1
                     try:
                         cursor.execute(update, (md5(row[0]), row[0]))
                     except FileNotFoundError as error:
@@ -125,8 +129,16 @@ def handle_file(connection):
             with connection.cursor() as cursor:
                 cursor.execute("SELECT path FROM find_duplicates.files WHERE type='f' AND updated_at < modification_time")
                 for row in cursor.fetchall():
+                    count = count + 1
                     cursor.execute(update, (md5(row[0]), row[0]))
 
+        if count == 0:
+            # Limit at 6h the time to sleep
+            if sleep_time < 6 * 60 * 60:
+                sleep_time = sleep_time + 1
+            time.sleep(sleep_time)
+        else:
+            sleep_time = 1
 
 
 connection = None
