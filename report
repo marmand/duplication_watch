@@ -2,9 +2,8 @@
 
 set -e
 
-psql -d "find_duplicates" -c "SELECT (SELECT COUNT(*) FROM find_duplicates.files WHERE type='f' AND md5sum IS NOT NULL) * 100 / (SELECT COUNT(*) FROM find_duplicates.files WHERE type='f') AS count_percent;"
-
 psql -d find_duplicates <<-EOF
+SELECT (SELECT COUNT(*) FROM find_duplicates.files WHERE type='f' AND md5sum IS NOT NULL) * 100 / (SELECT COUNT(*) FROM find_duplicates.files WHERE type='f') AS count_percent;
 select count(*), type from find_duplicates.files group by type;
 select count(*) AS files_without_hash from find_duplicates.files where md5sum is null and type='f';
 select sum(size) AS size_to_hash from find_duplicates.files where md5sum is null and type='f';
