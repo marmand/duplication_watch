@@ -78,7 +78,7 @@ def handle_dir(connection):
         paths = []
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute("SELECT path from find_duplicates.files WHERE type='d' AND updated_at IS NOT NULL ORDER BY updated_at LIMIT 1")
+                cursor.execute("SELECT path from find_duplicates.files WHERE type='d' AND updated_at IS NOT NULL ORDER BY updated_at LIMIT 10")
                 for row in cursor.fetchall():
                     paths.append(row[0])
         update_dir(connection, paths)
