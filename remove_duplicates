@@ -37,10 +37,19 @@ try:
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(same_files_request, (md5s[current],))
+                local_count = 0
                 for path in cursor.fetchall():
                     if os.path.exists(path[0]):
-                        paths[count] = path[0]
-                        count = count + 1
+                        paths[count + local_count] = path[0]
+                        local_count = local_count + 1
+                    else:
+                        print("Ignoring ", md5s[current])
+                        cursor.execute(remove_request, (md5s[current],))
+                        local_count = 0
+                        break
+                if 0 == local_count:
+                    continue
+                count = count + local_count
 
         print(handled_file, "/", total_file)
         print("Choose which file to keep:")
