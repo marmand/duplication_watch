@@ -24,11 +24,11 @@ try:
             for row in cursor.fetchall():
                 size = row[0]
                 SizeToHash = PrettyTable(["size", "unit"])
-                SizeToHash.add_row([size, 'octet'])
-                SizeToHash.add_row([size / 1024, 'Kilo octet'])
-                SizeToHash.add_row([size / 1024 / 1024, 'Mega octet'])
-                SizeToHash.add_row([size / 1024 / 1024 / 1024, 'Giga octet'])
-                SizeToHash.add_row([size / 1024 / 1024 / 1024 / 1024, 'Tera octet'])
+                SizeToHash.add_row([size, 'o'])
+                SizeToHash.add_row([size / 1024, 'Ko'])
+                SizeToHash.add_row([size / 1024 / 1024, 'Mo'])
+                SizeToHash.add_row([size / 1024 / 1024 / 1024, 'Go'])
+                SizeToHash.add_row([size / 1024 / 1024 / 1024 / 1024, 'To'])
                 print(SizeToHash)
             cursor.execute("select (select sum(size) from find_duplicates.files where md5sum is not null and type='f')/(select sum(size) from find_duplicates.files where type='f') * 100 AS size_percent;")
             for row in cursor.fetchall():
@@ -58,6 +58,7 @@ try:
             md5sum_computed_files = {'Computed': 0, 'Null': 0}
             update_durations = []
             last_dir_update = 0
+            to_hash_file_size = 0
             for row in cursor.fetchall():
                 (md5sum, updated_at, type, size) = row
                 type_count[type] = 1 + type_count.get(type, 0)
@@ -66,6 +67,7 @@ try:
                         md5sum_computed_files['Computed'] += 1
                     else:
                         md5sum_computed_files['Null'] += 1
+                        to_hash_file_size += size
                 elif 'd' == type:
                     if 0 != last_dir_update and updated_at != last_dir_update:
                         duration = updated_at - last_dir_update
@@ -75,7 +77,11 @@ try:
 
             print(type_count)
             print(md5sum_computed_files)
+            print("Total Progress: ", md5sum_computed_files['Computed'] / (md5sum_computed_files['Null'] + md5sum_computed_files['Computed']) * 100, '%')
+            print("Total file without hash:", md5sum_computed_files['Null'])
+            print("Total size to hash", to_hash_file_size)
             print(avg_duration)
+            print("Best limit for dir: ", max(1, int(60 / avg_duration.seconds)))
 
 except psycopg2.DatabaseError as error:
     print(error)
