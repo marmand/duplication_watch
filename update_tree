@@ -5,6 +5,7 @@ import os
 from threading import Thread
 import hashlib
 import time
+import datetime
 
 def update_dir(connection, paths):
     # Search in path new entries
@@ -72,26 +73,42 @@ def update_dir(connection, paths):
                     raise e
 
 def handle_dir(connection):
-    while True:
-    #if True:
+    # while True:
+    if True:
+        limit = 10
         # Handle oldest dir
-        paths = []
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute("SELECT path from find_duplicates.files WHERE type='d' AND updated_at IS NOT NULL ORDER BY updated_at LIMIT 10")
+                cursor.execute("SELECT updated_at FROM find_duplicates.files WHERE type='d' ORDER BY updated_at")
+                last_dir_update = 0
+                update_durations = []
                 for row in cursor.fetchall():
-                    paths.append(row[0])
-        update_dir(connection, paths)
-        paths = []
+                    (updated_at,) = row
+                    if 0 != last_dir_update and updated_at != last_dir_update:
+                        duration = updated_at - last_dir_update
+                        update_durations.append(duration)
+                    last_dir_update = updated_at
+                avg_duration = sum(update_durations, datetime.timedelta()) / float(len(update_durations))
+                limit = max(1, int(60 / avg_duration.seconds))
 
-        # Handle some dirs that we never visited before
-        with connection:
-            with connection.cursor() as cursor:
-                cursor.execute("SELECT path from find_duplicates.files WHERE type='d' AND updated_at IS NULL")
-                for row in cursor.fetchall():
-                    paths.append(row[0])
-        update_dir(connection, paths)
-        paths = []
+        for i in range(1, 150):
+            paths = []
+            with connection:
+                with connection.cursor() as cursor:
+                    cursor.execute("SELECT path from find_duplicates.files WHERE type='d' AND updated_at IS NOT NULL ORDER BY updated_at LIMIT %s", (limit,))
+                    for row in cursor.fetchall():
+                        paths.append(row[0])
+            update_dir(connection, paths)
+            paths = []
+
+            # Handle some dirs that we never visited before
+            with connection:
+                with connection.cursor() as cursor:
+                    cursor.execute("SELECT path from find_duplicates.files WHERE type='d' AND updated_at IS NULL")
+                    for row in cursor.fetchall():
+                        paths.append(row[0])
+            update_dir(connection, paths)
+            paths = []
 
 def md5(fname):
     hash_md5 = hashlib.md5()
