@@ -128,41 +128,20 @@ def handle_file(connection):
     while True:
     # if True:
         count = 0
-        # 12 Mo/s * 60 s
-        max_size = 12 * 1024 * 1024 * 60
-        total_size = 0
-        old_total_size = 0
-        paths = []
-        limit = 1
-        select_count = limit
-        progress = 10
-        while total_size < max_size and limit == select_count:
-            if progress < 10:
-                limit = limit * 2
-            with connection:
-                with connection.cursor() as cursor:
-                    cursor.execute("SELECT path, size FROM find_duplicates.files WHERE md5sum IS NULL AND type='f' ORDER BY size DESC LIMIT %s OFFSET %s", (limit, len(paths)))
-                    old_total_size = total_size
-                    select_count = 0
-                    for row in cursor.fetchall():
-                        select_count = select_count + 1
-                        (path, size) = row
-                        total_size = total_size + size
-                        paths.append(path)
-            progress = (total_size - old_total_size) / max_size * 100
-
         with connection:
             with connection.cursor() as cursor:
-                for path in paths:
+                cursor.execute("SELECT path, size FROM find_duplicates.files WHERE md5sum IS NULL AND type='f' ORDER BY size DESC LIMIT 10")
+                for row in cursor.fetchall():
+                    (path, size) = row
                     count = count + 1
                     try:
                         cursor.execute(update, (md5(path), path))
                     except FileNotFoundError as error:
                         print("File Not Found: ", path)
-                        cursor.execute("DELETE FROM find_duplicates.files WHERE path = %s", (row[0],))
+                        cursor.execute("DELETE FROM find_duplicates.files WHERE path = %s", (path,))
                     except Exception as error:
                         print("Error on: ", path)
-                        cursor.execute("DELETE FROM find_duplicates.files WHERE path = %s", (row[0],))
+                        cursor.execute("DELETE FROM find_duplicates.files WHERE path = %s", (path,))
 
         with connection:
             with connection.cursor() as cursor:
@@ -178,7 +157,6 @@ def handle_file(connection):
             time.sleep(sleep_time)
         else:
             sleep_time = 1
-
 
 connection = None
 try:
