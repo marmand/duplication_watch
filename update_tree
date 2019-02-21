@@ -79,7 +79,7 @@ def handle_dir(connection):
         # Handle oldest dir
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute("SELECT updated_at FROM find_duplicates.files WHERE type='d' ORDER BY updated_at")
+                cursor.execute("SELECT updated_at FROM find_duplicates.files WHERE type='d' AND updated_at IS NOT NULL ORDER BY updated_at")
                 last_dir_update = 0
                 update_durations = []
                 for row in cursor.fetchall():
