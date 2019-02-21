@@ -91,7 +91,7 @@ def handle_dir(connection):
                 avg_duration = sum(update_durations, datetime.timedelta()) / float(len(update_durations))
                 limit = max(1, int(60 / avg_duration.seconds))
 
-        for i in range(1, 150):
+        for i in range(1, 10):
             paths = []
             with connection:
                 with connection.cursor() as cursor:
