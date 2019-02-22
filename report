@@ -51,14 +51,17 @@ try:
 
     print("Only one selection: ")
 
+    type_count = dict()
+    md5sum_computed_files = {'Computed': 0, 'Null': 0}
+    update_durations = []
+    first_dir_update = 0
+    last_dir_update = 0
+    to_hash_file_size = 0
+    total_file_size = 0
+    duplicates_md5sums = dict()
     with connection:
         with connection.cursor() as cursor:
             cursor.execute("SELECT md5sum, updated_at, type, size FROM find_duplicates.files ORDER BY updated_at")
-            type_count = dict()
-            md5sum_computed_files = {'Computed': 0, 'Null': 0}
-            update_durations = []
-            last_dir_update = 0
-            to_hash_file_size = 0
             for row in cursor.fetchall():
                 (md5sum, updated_at, type, size) = row
                 type_count[type] = 1 + type_count.get(type, 0)
@@ -68,20 +71,36 @@ try:
                     else:
                         md5sum_computed_files['Null'] += 1
                         to_hash_file_size += size
+                    total_file_size += size
+                    if md5sum not in duplicates_md5sums:
+                        duplicates_md5sums[md5sum] = {'count': 1, 'size': size}
+                    else:
+                        duplicates_md5sums[md5sum]['count'] += 1
+                        duplicates_md5sums[md5sum]['size'] += size
                 elif 'd' == type:
+                    if 0 == first_dir_update:
+                        first_dir_update = updated_at
                     if 0 != last_dir_update and updated_at != last_dir_update:
                         duration = updated_at - last_dir_update
                         update_durations.append(duration)
                     last_dir_update = updated_at
             avg_duration = sum(update_durations, datetime.timedelta()) / float(len(update_durations))
 
-            print(type_count)
-            print(md5sum_computed_files)
-            print("Total Progress: ", md5sum_computed_files['Computed'] / (md5sum_computed_files['Null'] + md5sum_computed_files['Computed']) * 100, '%')
-            print("Total file without hash:", md5sum_computed_files['Null'])
-            print("Total size to hash", to_hash_file_size)
-            print(avg_duration)
-            print("Best limit for dir: ", max(1, int(60 / avg_duration.seconds)))
+    duplicates_size = 0
+    for md5sum in duplicates_md5sums.keys():
+        if duplicates_md5sums[md5sum]['count'] > 1:
+            duplicates_size += duplicates_md5sums[md5sum]['size']
+
+    print(type_count)
+    print(md5sum_computed_files)
+    print("Total Progress: ", md5sum_computed_files['Computed'] / (md5sum_computed_files['Null'] + md5sum_computed_files['Computed']) * 100, '%')
+    print("Total file without hash:", md5sum_computed_files['Null'])
+    print("Total size to hash", to_hash_file_size)
+    print(avg_duration)
+    print("Best limit for dir: ", max(1, int(60 / avg_duration.seconds)))
+    print("Update duration: ", last_dir_update - first_dir_update)
+    print("Size Progress: ", (total_file_size - to_hash_file_size) / total_file_size * 100, '%')
+    print("Duplicate Size: ", duplicates_size)
 
 except psycopg2.DatabaseError as error:
     print(error)
