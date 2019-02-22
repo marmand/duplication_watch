@@ -130,7 +130,8 @@ def handle_file(connection):
         count = 0
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute("SELECT path, size FROM find_duplicates.files WHERE md5sum IS NULL AND type='f' ORDER BY size DESC LIMIT 10")
+                # cursor.execute("SELECT path, size FROM find_duplicates.files WHERE md5sum IS NULL AND type='f' ORDER BY size DESC LIMIT 10")
+                cursor.execute("SELECT path, size FROM find_duplicates.files WHERE md5sum IS NULL AND type='f' LIMIT 10")
                 for row in cursor.fetchall():
                     (path, size) = row
                     count = count + 1
