@@ -11,43 +11,12 @@ try:
     connection = psycopg2.connect("dbname=find_duplicates user=armand")
     with connection:
         with connection.cursor() as cursor:
-            cursor.execute("SELECT (SELECT COUNT(*) FROM find_duplicates.files WHERE type='f' AND md5sum IS NOT NULL) * 100 / (SELECT COUNT(*) FROM find_duplicates.files WHERE type='f') AS count_percent")
-            for row in cursor.fetchall():
-                print("Total file progress: ", row[0], "%")
-            cursor.execute("select count(*), type from find_duplicates.files group by type")
-            pt = from_db_cursor(cursor)
-            print(pt)
-            cursor.execute("select count(*) AS files_without_hash from find_duplicates.files where md5sum is null and type='f'")
-            for row in cursor.fetchall():
-                print("Total file count without hash: ", row[0])
-            cursor.execute("select COALESCE(sum(size), 0) AS size_to_hash from find_duplicates.files where md5sum is null and type='f';")
-            for row in cursor.fetchall():
-                size = row[0]
-                SizeToHash = PrettyTable(["size", "unit"])
-                SizeToHash.add_row([size, 'o'])
-                SizeToHash.add_row([size / 1024, 'Ko'])
-                SizeToHash.add_row([size / 1024 / 1024, 'Mo'])
-                SizeToHash.add_row([size / 1024 / 1024 / 1024, 'Go'])
-                SizeToHash.add_row([size / 1024 / 1024 / 1024 / 1024, 'To'])
-                print(SizeToHash)
-            cursor.execute("select (select sum(size) from find_duplicates.files where md5sum is not null and type='f')/(select sum(size) from find_duplicates.files where type='f') * 100 AS size_percent;")
-            for row in cursor.fetchall():
-                print("Size Percernt: ", row[0])
-            cursor.execute("select sum(size) / 1024 / 1024 / 1024 || ' Go' AS duplicate_size from find_duplicates.files where md5sum in (select md5sum from find_duplicates.files group by md5sum having count(0) > 1);")
-            for row in cursor.fetchall():
-                print("Total Duplicate Size: ", row[0])
-            cursor.execute("select count(*) AS dir_without_updated_at from find_duplicates.files where type='d' and updated_at is null;")
-            for row in cursor.fetchall():
-                print("Directiories without updated_at", row[0])
             cursor.execute("select avg(c.count) AS average_dir_count_by_updated_at from (select count(*) as count from find_duplicates.files where type='d' group by updated_at order by updated_at) as c;")
             for row in cursor.fetchall():
                 print("Average Dir count by updated_at", row[0])
             cursor.execute("select count(*), updated_at from find_duplicates.files where type='d' group by updated_at order by updated_at limit 1;")
             for row in cursor.fetchall():
                 print("Last Updated", row)
-            cursor.execute("select (select updated_at from find_duplicates.files where type='d' and updated_at is not null group by updated_at order by updated_at desc limit 1) - (select updated_at from find_duplicates.files where type='d' and updated_at is not null group by updated_at order by updated_at limit 1) AS update_duration;")
-            for row in cursor.fetchall():
-                print("Update Duration: ", row[0])
 
     print("Only one selection: ")
 
@@ -58,13 +27,17 @@ try:
     last_dir_update = 0
     to_hash_file_size = 0
     total_file_size = 0
+    total_size = 0
     duplicates_md5sums = dict()
+    type_count = {'f': 0, 'd': 0, 'l': 0}
+    directory_without_updated_at = 0
     with connection:
         with connection.cursor() as cursor:
             cursor.execute("SELECT md5sum, updated_at, type, size FROM find_duplicates.files ORDER BY updated_at")
             for row in cursor.fetchall():
                 (md5sum, updated_at, type, size) = row
-                type_count[type] = 1 + type_count.get(type, 0)
+                type_count[type] += 1
+                total_size += size
                 if 'f' == type:
                     if md5sum:
                         md5sum_computed_files['Computed'] += 1
@@ -78,12 +51,15 @@ try:
                         duplicates_md5sums[md5sum]['count'] += 1
                         duplicates_md5sums[md5sum]['size'] += size
                 elif 'd' == type:
-                    if 0 == first_dir_update:
-                        first_dir_update = updated_at
-                    if 0 != last_dir_update and updated_at != last_dir_update:
-                        duration = updated_at - last_dir_update
-                        update_durations.append(duration)
-                    last_dir_update = updated_at
+                    if None == updated_at:
+                        directory_without_updated_at += 1
+                    else:
+                        if 0 == first_dir_update:
+                            first_dir_update = updated_at
+                        if 0 != last_dir_update and updated_at != last_dir_update:
+                            duration = updated_at - last_dir_update
+                            update_durations.append(duration)
+                        last_dir_update = updated_at
             avg_duration = sum(update_durations, datetime.timedelta()) / float(len(update_durations))
 
     duplicates_size = 0
@@ -91,16 +67,25 @@ try:
         if duplicates_md5sums[md5sum]['count'] > 1:
             duplicates_size += duplicates_md5sums[md5sum]['size']
 
-    print(type_count)
-    print(md5sum_computed_files)
     print("Total Progress: ", md5sum_computed_files['Computed'] / (md5sum_computed_files['Null'] + md5sum_computed_files['Computed']) * 100, '%')
+    print("Size Progress:", (total_file_size - to_hash_file_size) / total_file_size * 100, '%')
+    types = PrettyTable(["count", "type"])
+    types.add_row([type_count['f'], 'f'])
+    types.add_row([type_count['d'], 'd'])
+    types.add_row([type_count['l'], 'l'])
+    print(types)
+    print("Directories without updated_at", directory_without_updated_at)
     print("Total file without hash:", md5sum_computed_files['Null'])
-    print("Total size to hash", to_hash_file_size)
-    print(avg_duration)
-    print("Best limit for dir: ", max(1, int(60 / avg_duration.seconds)))
-    print("Update duration: ", last_dir_update - first_dir_update)
-    print("Size Progress: ", (total_file_size - to_hash_file_size) / total_file_size * 100, '%')
-    print("Duplicate Size: ", duplicates_size)
+    print("Best limit for dir:", max(1, int(60 / avg_duration.seconds)))
+    print("Average Update Duration:", avg_duration)
+    print("Full Update duration:", last_dir_update - first_dir_update)
+    sizes = PrettyTable(["unit", "Size to hash", "Duplicated Size", "Total Size"])
+    sizes.add_row(['o', to_hash_file_size, duplicates_size, total_size])
+    sizes.add_row(['Ko', to_hash_file_size / 1024, duplicates_size / 1024, total_size / 1024])
+    sizes.add_row(['Mo', to_hash_file_size / 1024 / 1024, duplicates_size / 1024 / 1024, total_size / 1024 / 1024])
+    sizes.add_row(['Go', to_hash_file_size / 1024 / 1024 / 1024, duplicates_size / 1024 / 1024 / 1024, total_size / 1024 / 1024 / 1024])
+    sizes.add_row(['To', to_hash_file_size / 1024 / 1024 / 1024 / 1024, duplicates_size / 1024 / 1024 / 1024 / 1024, total_size / 1024 / 1024 / 1024 / 1024])
+    print(sizes)
 
 except psycopg2.DatabaseError as error:
     print(error)
