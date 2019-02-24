@@ -67,8 +67,10 @@ try:
         if duplicates_md5sums[md5sum]['count'] > 1:
             duplicates_size += duplicates_md5sums[md5sum]['size']
 
-    print("Total Progress: ", md5sum_computed_files['Computed'] / (md5sum_computed_files['Null'] + md5sum_computed_files['Computed']) * 100, '%')
-    print("Size Progress:", (total_file_size - to_hash_file_size) / total_file_size * 100, '%')
+    progress = PrettyTable(["", "Progress (%)"])
+    progress.add_row(["Total", md5sum_computed_files['Computed'] / (md5sum_computed_files['Null'] + md5sum_computed_files['Computed']) * 100])
+    progress.add_row(["Size", (total_file_size - to_hash_file_size) / total_file_size * 100])
+    print(progress)
     types = PrettyTable(["count", "type"])
     types.add_row([type_count['f'], 'f'])
     types.add_row([type_count['d'], 'd'])
