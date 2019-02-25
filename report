@@ -16,7 +16,7 @@ try:
                 print("Average Dir count by updated_at", row[0])
             cursor.execute("select count(*), updated_at from find_duplicates.files where type='d' group by updated_at order by updated_at limit 1;")
             for row in cursor.fetchall():
-                print("Last Updated", row)
+                print("Last Updated", row[0], ':', row[1])
 
     print("Only one selection: ")
 
