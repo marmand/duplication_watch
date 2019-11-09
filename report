@@ -8,7 +8,7 @@ from prettytable import *
 
 connection = None
 try:
-    connection = psycopg2.connect("dbname=find_duplicates user=armand")
+    connection = psycopg2.connect("dbname=armand user=armand host=192.168.0.44")
     with connection:
         with connection.cursor() as cursor:
             cursor.execute("select avg(c.count) AS average_dir_count_by_updated_at from (select count(*) as count from find_duplicates.files where type='d' group by updated_at order by updated_at) as c;")

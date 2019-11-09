@@ -5,7 +5,7 @@ import os
 
 connection = None
 try:
-    connection = psycopg2.connect("dbname=find_duplicates user=armand")
+    connection = psycopg2.connect("dbname=armand user=armand host=192.168.0.44")
 
     md5s = dict()
     total_file = 0

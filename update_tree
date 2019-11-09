@@ -161,7 +161,7 @@ def handle_file(connection):
 
 connection = None
 try:
-    connection = psycopg2.connect("dbname=find_duplicates user=armand")
+    connection = psycopg2.connect("dbname=armand user=armand host=192.168.0.44")
     dir_thread = Thread(target = handle_dir, args = (connection,))
     file_thread = Thread(target = handle_file, args = (connection,))
     dir_thread.start()
