@@ -43,7 +43,7 @@ try:
                         paths[count + local_count] = path[0]
                         local_count = local_count + 1
                     else:
-                        print("Ignoring ", md5s[current])
+                        print("Ignoring ", md5s[current], ":", path[0])
                         cursor.execute(remove_request, (md5s[current],))
                         local_count = 0
                         break
