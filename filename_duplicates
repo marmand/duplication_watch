@@ -1,0 +1,49 @@
+#! /usr/bin/python3
+
+
+import psycopg2
+import os
+
+from collections import defaultdict
+
+connection = None
+try:
+    connection = psycopg2.connect("dbname=armand user=armand host=192.168.0.44")
+
+    files = defaultdict(list)
+    to_remove = list()
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT path, md5sum FROM find_duplicates.files WHERE type='f'")
+            for row in cursor.fetchall():
+                if os.path.exists(row[0]):
+                   path = os.path.basename(row[0])
+                   files[path].append({'path': row[0], 'md5': row[1]})
+                else:
+                   to_remove.append(os.path.basename(row[0]))
+
+    remove_request = """
+        DELETE FROM find_duplicates.files WHERE path = %s
+    """
+
+    print("##### Removing from database not found files #####")
+    for basename in to_remove:
+        for duplicata in files[basename]:
+            print("\tDELETE {path}".format(path = duplicata['path']))
+            with connection:
+                with connection.cursor() as cursor:
+                    cursor.execute(remove_request, (duplicata['path'],))
+        del files[basename]
+    print("##### Done #####")
+
+    for filename in files:
+        if len(files[filename]) > 1:
+            print("{filename}:".format(filename=filename))
+            for duplicata in files[filename]:
+                print("\t{d}".format(d=duplicata))
+
+except psycopg2.DatabaseError as error:
+    print(error)
+finally:
+    if connection is not None:
+        connection.close()
