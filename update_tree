@@ -69,7 +69,7 @@ def update_dir(connection, paths):
                 except FileNotFoundError as error:
                     print("File Not Found: ", error)
                 except Exception as e:
-                    print("Error on: ", p)
+                    print("[DIR] Error on: ", p)
                     raise e
 
 def handle_dir(connection):
@@ -141,7 +141,7 @@ def handle_file(connection):
                         print("File Not Found: ", path)
                         cursor.execute("DELETE FROM find_duplicates.files WHERE path = %s", (path,))
                     except Exception as error:
-                        print("Error on: ", path)
+                        print("[FILE] Error on: ", path)
                         cursor.execute("DELETE FROM find_duplicates.files WHERE path = %s", (path,))
 
         with connection:
