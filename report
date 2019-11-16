@@ -79,7 +79,7 @@ try:
     print("Directories without updated_at", directory_without_updated_at)
     print("Total file without hash:", md5sum_computed_files['Null'])
     print("Best limit for dir:", max(1, int(60 / avg_duration.seconds)))
-    print("Average Update Duration:", avg_duration)
+    print("Average Directory Update Duration:", avg_duration)
     print("Full Update duration:", last_dir_update - first_dir_update)
     sizes = PrettyTable(["unit", "Size to hash", "Duplicated Size", "Total Size"])
     sizes.add_row(['o', to_hash_file_size, duplicates_size, total_size])
