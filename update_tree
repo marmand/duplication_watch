@@ -6,6 +6,7 @@ from threading import Thread
 import hashlib
 import time
 import datetime
+import stat
 
 def update_dir(connection, paths):
     # Search in path new entries
