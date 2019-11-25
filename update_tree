@@ -39,20 +39,15 @@ def update_dir(connection, paths):
                             t = 'NULL'
                             fullpath = os.path.join(p, f)
                             # print("Debug: ", fullpath)
-                            mode = os.stat(fullpath).st_mode
-                            if stat.S_ISREG(mode):
+                            if os.path.isfile(fullpath):
                                 t = 'f'
-                            elif stat.S_ISDIR(mode):
+                            elif os.path.isdir(fullpath):
                                 t = 'd'
-                            elif stat.S_ISLNK(mode):
-                                t = 'l'
-                            elif stat.S_ISFIFO(mode):
-                                t = 'p'
-                            if t == 'p' or t == 'l':
+                            if os.path.islink(fullpath):
                                 cursor.execute(new_line_sql,
                                     {
                                         'path': fullpath,
-                                        'type': t,
+                                        'type': 'l',
                                         'size': '0',
                                         'modification_time': '0',
                                     })

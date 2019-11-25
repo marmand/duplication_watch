@@ -29,7 +29,7 @@ try:
     total_file_size = 0
     total_size = 0
     duplicates_md5sums = dict()
-    type_count = {'f': 0, 'd': 0, 'l': 0, 'p': 0}
+    type_count = {'f': 0, 'd': 0, 'l': 0}
     directory_without_updated_at = 0
     with connection:
         with connection.cursor() as cursor:
@@ -75,7 +75,6 @@ try:
     types.add_row([type_count['f'], 'f'])
     types.add_row([type_count['d'], 'd'])
     types.add_row([type_count['l'], 'l'])
-    types.add_row([type_count['p'], 'p'])
     print(types)
     print("Directories without updated_at", directory_without_updated_at)
     print("Total file without hash:", md5sum_computed_files['Null'])
